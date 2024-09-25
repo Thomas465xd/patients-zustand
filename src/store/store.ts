@@ -1,5 +1,5 @@
 import { create } from "zustand";  // Zustand is used to create a global state store
-import { devtools } from "zustand/middleware";  // Devtools middleware allows debugging with Redux DevTools
+import { devtools, persist } from "zustand/middleware";  // Devtools middleware allows debugging with Redux DevTools
 import { v4 as uuidv4 } from "uuid";  // Importing uuid to generate unique IDs for each patient
 import { DraftPatient, Patient } from "../types";  // Importing the type definitions for Patient and DraftPatient
 
@@ -10,6 +10,7 @@ type PatientState = {
     addPatient: (data: DraftPatient) => void;  // Function to add a new patient
     deletePatient: (id: Patient["id"]) => void;  // Function to delete a patient by ID
     getPatientById: (id: Patient["id"]) => void;  // Function to set the active patient by ID
+    updatePatient: (data: DraftPatient) => void;  // Function to update a patient
 }
 
 // Helper function to create a new patient by adding an ID
@@ -20,6 +21,7 @@ const createPatient = (patient: DraftPatient) : Patient => {
 // Zustand store definition
 export const usePatientStore = create<PatientState>()(
     devtools(  // Wrapping the store with devtools for debugging
+        persist(  // Wrapping the store with persist for data persistence
         (set) => ({
             patients: [],  // Initial state for patients is an empty array
             activeId: "",  // Initially, no patient is active, so activeId is an empty string
@@ -44,7 +46,18 @@ export const usePatientStore = create<PatientState>()(
                 set(() => ({
                     activeId: id  // Set the active patient's ID
                 }));
+            },
+
+            // Function to update a patient
+            updatePatient: (data) => {
+                set((state) => ({
+                    patients: state.patients.map(patient => patient.id === state.activeId ? {id: state.activeId, ...data} : patient),  // Update the patient in the array whose ID matches
+                    activeId: ""  // Reset the active patient's ID
+                }));
             }
+        }), {
+            name: "patient-storage",  // Name of the localStorage key
+            //storage: createJSONStorage(() => localStorage)  // Use sessionStorage to store the state
         })
     )
 );
